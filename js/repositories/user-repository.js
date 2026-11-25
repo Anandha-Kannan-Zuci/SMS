@@ -19,6 +19,21 @@ export class UserRepository {
   async create(user) {
     return await db.add('users', user);
   }
+  async delete(id) {
+    return await db.delete('users', id);
+  }
+
+   /**
+   * Deletes a user account linked to a specific studentId or teacherId
+   */
+  async deleteByRefId(refId) {
+    const allUsers = await this.getAll();
+    const matchedUser = allUsers.find(u => u.refId === refId);
+    if (matchedUser) {
+      await this.delete(matchedUser.id);
+    }
+  }
+
 }
 
 export const userRepository = new UserRepository();

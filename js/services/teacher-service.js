@@ -51,7 +51,9 @@ export class TeacherService {
   }
 
   async deleteTeacher(id) {
-    return await teacherRepository.delete(id);
+    await teacherRepository.delete(id);
+    await userRepository.deleteByRefId(id); // Delete associated user account
+    return true;
   }
 }
 
