@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student Management - SMS</title>
   <link rel="stylesheet" href="../../css/style.css">
 </head>
+
 <body>
   <div class="dashboard-layout">
     <aside class="sidebar">
@@ -13,6 +15,7 @@
       <ul class="sidebar-nav">
         <li><a href="dashboard.html">Dashboard</a></li>
         <li><a href="students.html" class="active">Students</a></li>
+        <li><a href="teachers.html">Teachers</a></li>
         <li><a href="#" id="logout-btn">Logout</a></li>
       </ul>
     </aside>
@@ -24,11 +27,13 @@
       </div>
 
       <!-- Add Student Form -->
-      <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+      <div
+        style="background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
         <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Add New Student</h3>
         <div id="form-error" class="alert alert-error" style="display: none;"></div>
-        
-        <form id="add-student-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
+
+        <form id="add-student-form"
+          style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
           <div class="form-group" style="margin-bottom: 0;">
             <label for="name">Full Name *</label>
             <input type="text" id="name" required placeholder="John Doe">
@@ -53,6 +58,16 @@
         </form>
       </div>
 
+      <!-- Search & Filter Controls -->
+      <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+        <input type="text" id="search-input" placeholder="🔍 Search by name or admission no..."
+          style="flex: 2; min-width: 200px; padding: 0.6rem 0.8rem; border: 1px solid var(--border); border-radius: 6px;">
+        <select id="filter-class"
+          style="flex: 1; min-width: 150px; padding: 0.6rem 0.8rem; border: 1px solid var(--border); border-radius: 6px;">
+          <option value="">All Classes</option>
+        </select>
+      </div>
+
       <!-- Students Table -->
       <table class="table">
         <thead>
@@ -66,7 +81,9 @@
           </tr>
         </thead>
         <tbody id="students-tbody">
-          <tr><td colspan="6" style="text-align: center;">Loading students...</td></tr>
+          <tr>
+            <td colspan="6" style="text-align: center;">Loading students...</td>
+          </tr>
         </tbody>
       </table>
     </main>
@@ -79,28 +96,44 @@
 
     authService.requireAuth(['admin']);
     document.getElementById('logout-btn').addEventListener('click', () => authService.logout());
-
+    document.getElementById('search-input').addEventListener('input', ()=> renderStudents());
+    document.getElementById('filter-class').addEventListener('change', ()=> renderStudents());
+    
     const tbody = document.getElementById('students-tbody');
     const classSelect = document.getElementById('classId');
     const form = document.getElementById('add-student-form');
     const formError = document.getElementById('form-error');
 
-    // Populate class dropdown
+    // Populate class dropdowns (both Add Form and Filter)
     async function loadClasses() {
       const classes = await db.getAll('classes');
-      classSelect.innerHTML = '<option value="">Select Class</option>' + 
-        classes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      const options = classes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      classSelect.innerHTML = '<option value="">Select Class</option>' + options;
+      document.getElementById('filter-class').innerHTML = '<option value="">All Classes</option>' + options;
     }
 
     // Render table
+    let allStudents = [];
     async function renderStudents() {
-      const students = await studentService.getAllStudents();
-      if (students.length === 0) {
+      allStudents = await studentService.getAllStudents();
+      applyFilters();
+    }
+
+    //Filtering logic
+    function applyFilters() {
+      const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+      const selectedClass = document.getElementById('filter-class').value;
+      const filtered = allStudents.filter(s => {
+        const matchesSearch = s.name.toLowerCase().includes(searchTerm) || s.admissionNo.toLowerCase().includes(searchTerm);
+        const matchesClass = !selectedClass || s.classId === selectedClass;
+        return matchesSearch && matchesClass;
+      });
+      if (allStudents.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No students found.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = students.map(s => `
+      tbody.innerHTML = filtered.map(s => `
         <tr>
           <td><strong>${s.admissionNo}</strong></td>
           <td>${s.name}</td>
@@ -148,4 +181,5 @@
     await renderStudents();
   </script>
 </body>
+
 </html>
