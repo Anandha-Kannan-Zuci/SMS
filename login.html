@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Student Management System</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="auth-body">
+  <div class="login-card">
+    <h2>Student Management System</h2>
+    <p class="subtitle">Sign in to your account</p>
+
+    <div id="error-alert" class="alert alert-error" style="display: none;"></div>
+
+    <form id="login-form">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" required placeholder="e.g. admin, teacher1, student1">
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" required placeholder="password123">
+      </div>
+
+      <button type="submit" class="btn btn-primary">Sign In</button>
+    </form>
+
+    <div class="demo-hints">
+      <p><strong>Demo Accounts (password: password123):</strong></p>
+      <ul>
+        <li><a href="#" class="quick-fill" data-user="admin">Admin: <code>admin</code></a></li>
+        <li><a href="#" class="quick-fill" data-user="teacher1">Teacher: <code>teacher1</code></a></li>
+        <li><a href="#" class="quick-fill" data-user="student1">Student: <code>student1</code></a></li>
+      </ul>
+    </div>
+  </div>
+
+  <script type="module">
+    import { authService } from './js/services/auth-service.js';
+    import { seedDatabase } from './js/database/seed.js';
+
+    // Ensure database has seeded demo accounts
+    await seedDatabase();
+
+    const form = document.getElementById('login-form');
+    const errorAlert = document.getElementById('error-alert');
+
+    // Quick-fill helper for demo testing
+    document.querySelectorAll('.quick-fill').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('username').value = el.dataset.user;
+        document.getElementById('password').value = 'password123';
+      });
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorAlert.style.display = 'none';
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      try {
+        const user = await authService.login(username, password);
+        // Route according to role
+        window.location.href = `/pages/${user.role}/dashboard.html`;
+      } catch (err) {
+        errorAlert.textContent = err.message;
+        errorAlert.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>
