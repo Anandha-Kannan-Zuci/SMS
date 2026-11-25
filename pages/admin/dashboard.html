@@ -37,12 +37,32 @@
           <p id="total-classes" style="font-size: 2rem; font-weight: bold; margin-top: 0.5rem;">0</p>
         </div>
       </div>
+
+            <!-- Backup & Restore Section -->
+      <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 2rem;">
+        <h3 style="margin-bottom: 0.5rem; font-size: 1.1rem;">Data Management & Backup</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.25rem;">
+          Export your local browser database to JSON, restore from a backup file, or reset to demo data.
+        </p>
+
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+          <button id="export-btn" class="btn btn-primary" style="width: auto;">📥 Export Backup (JSON)</button>
+          
+          <label class="btn" style="background: #e2e8f0; color: #1e293b; cursor: pointer; display: inline-block;">
+            📤 Import Backup
+            <input type="file" id="import-file" accept=".json" style="display: none;">
+          </label>
+
+          <button id="reset-btn" class="btn btn-danger" style="width: auto;">⚠️ Reset Demo Data</button>
+        </div>
+      </div>
     </main>
   </div>
 
   <script type="module">
     import { authService } from '../../js/services/auth-service.js';
     import { db } from '../../js/database/db.js';
+    import { storageManager } from '../../js/utils/storage-manager.js';
 
     // Route guard: only admin allowed
     const currentUser = authService.requireAuth(['admin']);
@@ -55,6 +75,27 @@
       document.getElementById('total-teachers').textContent = await db.count('teachers');
       document.getElementById('total-classes').textContent = await db.count('classes');
     }
+    document.getElementById('export-btn').addEventListener('click', async () => {
+      await storageManager.exportBackup();
+    });
+    document.getElementById('import-file').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        await storageManager.importBackup(file);
+        alert('Database restored successfully! Refreshing...');
+        window.location.reload();
+      } catch (err) {
+        alert('Restore failed: ' + err.message);
+      }
+    });
+    document.getElementById('reset-btn').addEventListener('click', async () => {
+      if (confirm('Are you sure you want to reset all data back to the demo defaults?')) {
+        await storageManager.resetToDefaults();
+        alert('Database reset complete!');
+        window.location.reload();
+      }
+    });
   </script>
 </body>
 </html>
