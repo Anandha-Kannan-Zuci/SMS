@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - SMS</title>
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+  <div class="dashboard-layout">
+    <aside class="sidebar">
+      <h3>Admin Panel</h3>
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html" class="active">Dashboard</a></li>
+        <li><a href="students.html">Students</a></li>
+        <li><a href="#" id="logout-btn">Logout</a></li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="header-bar">
+        <h2>Dashboard Overview</h2>
+        <span id="user-greeting">Welcome, Admin</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <h4 style="color: var(--text-muted); font-size: 0.9rem;">Total Students</h4>
+          <p id="total-students" style="font-size: 2rem; font-weight: bold; margin-top: 0.5rem;">0</p>
+        </div>
+        <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <h4 style="color: var(--text-muted); font-size: 0.9rem;">Total Teachers</h4>
+          <p id="total-teachers" style="font-size: 2rem; font-weight: bold; margin-top: 0.5rem;">0</p>
+        </div>
+        <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <h4 style="color: var(--text-muted); font-size: 0.9rem;">Total Classes</h4>
+          <p id="total-classes" style="font-size: 2rem; font-weight: bold; margin-top: 0.5rem;">0</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { authService } from '../../js/services/auth-service.js';
+    import { db } from '../../js/database/db.js';
+
+    // Route guard: only admin allowed
+    const currentUser = authService.requireAuth(['admin']);
+    if (currentUser) {
+      document.getElementById('user-greeting').textContent = `Welcome, ${currentUser.name}`;
+      document.getElementById('logout-btn').addEventListener('click', () => authService.logout());
+
+      // Load counts
+      document.getElementById('total-students').textContent = await db.count('students');
+      document.getElementById('total-teachers').textContent = await db.count('teachers');
+      document.getElementById('total-classes').textContent = await db.count('classes');
+    }
+  </script>
+</body>
+</html>

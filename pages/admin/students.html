@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Management - SMS</title>
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+  <div class="dashboard-layout">
+    <aside class="sidebar">
+      <h3>Admin Panel</h3>
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="students.html" class="active">Students</a></li>
+        <li><a href="#" id="logout-btn">Logout</a></li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="header-bar">
+        <h2>Students</h2>
+        <span id="user-greeting">Admin</span>
+      </div>
+
+      <!-- Add Student Form -->
+      <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Add New Student</h3>
+        <div id="form-error" class="alert alert-error" style="display: none;"></div>
+        
+        <form id="add-student-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="name">Full Name *</label>
+            <input type="text" id="name" required placeholder="John Doe">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="admissionNo">Admission No *</label>
+            <input type="text" id="admissionNo" required placeholder="ADM202603">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="john@school.edu">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="classId">Class *</label>
+            <select id="classId" required>
+              <option value="">Select Class</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <button type="submit" class="btn btn-primary" style="height: 40px;">Add Student</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Students Table -->
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Admission No</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Class</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="students-tbody">
+          <tr><td colspan="6" style="text-align: center;">Loading students...</td></tr>
+        </tbody>
+      </table>
+    </main>
+  </div>
+
+  <script type="module">
+    import { authService } from '../../js/services/auth-service.js';
+    import { studentService } from '../../js/services/student-service.js';
+    import { db } from '../../js/database/db.js';
+
+    authService.requireAuth(['admin']);
+    document.getElementById('logout-btn').addEventListener('click', () => authService.logout());
+
+    const tbody = document.getElementById('students-tbody');
+    const classSelect = document.getElementById('classId');
+    const form = document.getElementById('add-student-form');
+    const formError = document.getElementById('form-error');
+
+    // Populate class dropdown
+    async function loadClasses() {
+      const classes = await db.getAll('classes');
+      classSelect.innerHTML = '<option value="">Select Class</option>' + 
+        classes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    }
+
+    // Render table
+    async function renderStudents() {
+      const students = await studentService.getAllStudents();
+      if (students.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No students found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = students.map(s => `
+        <tr>
+          <td><strong>${s.admissionNo}</strong></td>
+          <td>${s.name}</td>
+          <td>${s.email || '-'}</td>
+          <td>${s.className}</td>
+          <td><span style="color: var(--success); font-weight: 500;">${s.status}</span></td>
+          <td>
+            <button class="btn btn-danger delete-btn" data-id="${s.id}" style="padding: 0.35rem 0.65rem; font-size: 0.8rem;">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+
+      // Wire delete buttons
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (confirm('Are you sure you want to delete this student?')) {
+            await studentService.deleteStudent(btn.dataset.id);
+            renderStudents();
+          }
+        });
+      });
+    }
+
+    // Add student form submit
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      formError.style.display = 'none';
+
+      try {
+        await studentService.createStudent({
+          name: document.getElementById('name').value,
+          admissionNo: document.getElementById('admissionNo').value,
+          email: document.getElementById('email').value,
+          classId: document.getElementById('classId').value
+        });
+        form.reset();
+        await renderStudents();
+      } catch (err) {
+        formError.textContent = err.message;
+        formError.style.display = 'block';
+      }
+    });
+
+    await loadClasses();
+    await renderStudents();
+  </script>
+</body>
+</html>

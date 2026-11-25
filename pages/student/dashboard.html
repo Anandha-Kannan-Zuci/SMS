@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Portal - SMS</title>
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+  <div class="dashboard-layout">
+    <aside class="sidebar">
+      <h3>Student Portal</h3>
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html" class="active">My Dashboard</a></li>
+        <li><a href="#" id="logout-btn">Logout</a></li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="header-bar">
+        <h2>My Academic Portal</h2>
+        <span id="user-greeting">Welcome, Student</span>
+      </div>
+
+      <!-- Profile Card -->
+      <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Student Information</h3>
+        <div id="student-profile" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+          <div><span style="color: var(--text-muted); font-size: 0.85rem;">Full Name:</span> <strong id="profile-name">-</strong></div>
+          <div><span style="color: var(--text-muted); font-size: 0.85rem;">Admission No:</span> <strong id="profile-admission">-</strong></div>
+          <div><span style="color: var(--text-muted); font-size: 0.85rem;">Enrolled Class:</span> <strong id="profile-class">-</strong></div>
+          <div><span style="color: var(--text-muted); font-size: 0.85rem;">Email:</span> <strong id="profile-email">-</strong></div>
+        </div>
+      </div>
+
+      <!-- School Announcements -->
+      <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Announcements</h3>
+        <div id="announcements-container">
+          <p style="color: var(--text-muted);">Loading announcements...</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { authService } from '../../js/services/auth-service.js';
+    import { studentRepository } from '../../js/repositories/student-repository.js';
+    import { db } from '../../js/database/db.js';
+
+    // Route guard: student only
+    const user = authService.requireAuth(['student']);
+    if (user) {
+      document.getElementById('user-greeting').textContent = `Welcome, ${user.name}`;
+      document.getElementById('logout-btn').addEventListener('click', () => authService.logout());
+
+      // Fetch student details using the session's refId
+      const student = user.refId ? await studentRepository.getById(user.refId) : null;
+
+      if (student) {
+        document.getElementById('profile-name').textContent = student.name;
+        document.getElementById('profile-admission').textContent = student.admissionNo;
+        document.getElementById('profile-email').textContent = student.email || '-';
+
+        const studentClass = await db.get('classes', student.classId);
+        document.getElementById('profile-class').textContent = studentClass ? studentClass.name : 'Not Assigned';
+      } else {
+        document.getElementById('profile-name').textContent = user.name;
+        document.getElementById('profile-admission').textContent = 'N/A';
+        document.getElementById('profile-class').textContent = 'N/A';
+      }
+
+      // Load announcements
+      const announcements = await db.getAll('announcements');
+      const container = document.getElementById('announcements-container');
+      if (announcements.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted);">No announcements yet.</p>';
+      } else {
+        container.innerHTML = announcements.map(a => `
+          <div style="border-left: 4px solid var(--primary); padding: 0.5rem 1rem; margin-bottom: 1rem; background: #f8fafc;">
+            <h4 style="margin-bottom: 0.25rem;">${a.title}</h4>
+            <p style="font-size: 0.9rem; color: #334155;">${a.content}</p>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">${a.date}</span>
+          </div>
+        `).join('');
+      }
+    }
+  </script>
+</body>
+</html>

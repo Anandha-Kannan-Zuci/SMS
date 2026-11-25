@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Dashboard - SMS</title>
+  <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+  <div class="dashboard-layout">
+    <aside class="sidebar">
+      <h3>Teacher Portal</h3>
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html" class="active">Dashboard</a></li>
+        <li><a href="#" id="logout-btn">Logout</a></li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="header-bar">
+        <h2>Teacher Overview</h2>
+        <span id="user-greeting">Welcome, Teacher</span>
+      </div>
+
+      <!-- Classes & Courses Section -->
+      <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Academic Structure</h3>
+        <p style="color: var(--text-muted); margin-bottom: 1rem;">All active classes and courses in the system:</p>
+        <div id="classes-list" style="display: flex; gap: 1rem; flex-wrap: wrap;"></div>
+      </div>
+
+      <!-- Assigned Students Section -->
+      <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Students List</h3>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Admission No</th>
+              <th>Name</th>
+              <th>Class</th>
+              <th>Email</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="students-tbody">
+            <tr><td colspan="5" style="text-align: center;">Loading students...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { authService } from '../../js/services/auth-service.js';
+    import { studentService } from '../../js/services/student-service.js';
+    import { db } from '../../js/database/db.js';
+
+    // Route guard: teacher only
+    const user = authService.requireAuth(['teacher']);
+    if (user) {
+      document.getElementById('user-greeting').textContent = `Welcome, ${user.name}`;
+      document.getElementById('logout-btn').addEventListener('click', () => authService.logout());
+
+      // Load classes
+      const classes = await db.getAll('classes');
+      const classesList = document.getElementById('classes-list');
+      classesList.innerHTML = classes.map(c => `
+        <div style="border: 1px solid var(--border); padding: 0.75rem 1rem; border-radius: 6px; background: #f8fafc;">
+          <strong>${c.name}</strong>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">${c.academicYear}</div>
+        </div>
+      `).join('');
+
+      // Load students
+      const students = await studentService.getAllStudents();
+      const tbody = document.getElementById('students-tbody');
+      tbody.innerHTML = students.map(s => `
+        <tr>
+          <td><strong>${s.admissionNo}</strong></td>
+          <td>${s.name}</td>
+          <td>${s.className}</td>
+          <td>${s.email || '-'}</td>
+          <td><span style="color: var(--success); font-weight: 500;">${s.status}</span></td>
+        </tr>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
